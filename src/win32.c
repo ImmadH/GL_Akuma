@@ -1,25 +1,8 @@
 //All windows related systems will go here
-#include <Windows.h>
-#include <winuser.h>
+#include "win32.h"
 #include <wingdi.h>
-#include "opengl.h" 
-#include "glad/glad.h"
-#include <stdio.h>
 
-typedef struct Window 
-{
-  HWND handle;
-  HINSTANCE hInstance;
-  int width;
-  int height;
-  const wchar_t* title;
-  const wchar_t* className;
-  HDC hDC;
-  HGLRC openglContext;
-} Window;
-
-
-const wchar_t* getClassName()
+const wchar_t* getClassName(void)
 {
   return L"WindowClass";
 }
@@ -37,6 +20,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     break;
     case WM_ERASEBKGND:
       return 1;
+    break;
+    case WM_SIZE: 
+      {
+        int width = LOWORD(lParam);
+        int height = HIWORD(lParam);
+        if (height == 0) height = 1;
+        glViewport(0, 0, width, height);
+      }
+    break;
     default:
       return DefWindowProc(hwnd, msg, wParam, lParam);
   }
@@ -45,11 +37,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 
 //Function to initialize the window class(A template?)
-static void register_class()
+void register_class(void)
 {
   WNDCLASSEX window_class = {0};
   window_class.cbSize = sizeof(WNDCLASSEX);
-  window_class.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+  window_class.style = CS_OWNDC;
   window_class.lpfnWndProc = WndProc;
   window_class.cbClsExtra = 0;
   window_class.cbWndExtra = 0;
@@ -66,14 +58,14 @@ static void register_class()
   }
 }
 
-Window* create_window()
+Window* create_window(void)
 {
   //populate the window struct 
   //and do creation
   static Window mainWindow;
   mainWindow.width = 800;
   mainWindow.height = 600;
-  mainWindow.title = L"A window";
+  mainWindow.title = L"Akuma - OpenGL 4.6";
   mainWindow.className = getClassName();
   mainWindow.hInstance = GetModuleHandle(NULL); 
   
@@ -95,42 +87,6 @@ Window* create_window()
 
 //we need a main entry point that will grab from the populated struct MyStruct 
 //function to create the actual window
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
-  UNREFERENCED_PARAMETER(hPrevInstance);
-	UNREFERENCED_PARAMETER(lpCmdLine);
-  UNREFERENCED_PARAMETER(hInstance);
 
-  MSG msg = {0};
-  register_class();
-  Window* window = create_window();
-  if (window->handle == NULL)
-  {
-    MessageBox(NULL, L"Window Creation Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
-    return 0;
-  }
-  ShowWindow(window->handle, nCmdShow);
-  UpdateWindow(window->handle);
-  
-  int running = 1;
-  while (running)
-  {
-    while(PeekMessage(&msg, NULL, 0, 0,PM_REMOVE))
-    {
-      if (msg.message== WM_QUIT) running = 0;
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-    //draw here test
-    glClearColor(1.0, 0.5f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-
-    SwapBuffers(window->hDC);
-  }
-
-  return  msg.wParam;
-
-}
 
 

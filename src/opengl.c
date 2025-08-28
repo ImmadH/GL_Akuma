@@ -53,6 +53,6 @@ HGLRC enableGL(HWND handle, HDC* outHdc)
 
 
 
-  *outHdc = hDC;            // keep the HDC for SwapBuffers each frame
+  *outHdc = hDC;            // keep the HDC for SwapBuffers
   return hRC;
 }
