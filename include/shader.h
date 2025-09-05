@@ -12,7 +12,6 @@ typedef struct Shader
 } Shader;
 
 
-//in main: Shader myShader = createShader()
 //pass file paths return the shader program to ID with compiled shaders
 void shader_create(Shader* shader, const char* vertexPath, const char* fragmentPath);
 void shader_delete(Shader* shader);

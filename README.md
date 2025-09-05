@@ -1,5 +1,6 @@
 GLAkuma - OpenGL rewrite  99999
--No libraries
+-Going to use some libraries. Eager for vulkan
+
 
 TODO: 
 -Integrate OpenGL

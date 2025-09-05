@@ -3,8 +3,10 @@
 #include <mmeapi.h>
 #include <winuser.h>
 #include <wingdi.h>
+#include <stdbool.h>
 #include "opengl.h"
 #include "glad/glad.h"
+
 
 typedef struct Window 
 {
