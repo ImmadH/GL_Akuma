@@ -1,6 +1,13 @@
 //All windows related systems will go here
 #include "win32.h"
 #include <wingdi.h>
+#include <winuser.h>
+#include "camera.h"
+#include <windowsx.h>
+
+extern Camera camera;
+static bool g_mouseLook = false;
+static POINT g_lastPos;
 
 const wchar_t* getClassName(void)
 {
@@ -26,9 +33,38 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         int width = LOWORD(lParam);
         int height = HIWORD(lParam);
         if (height == 0) height = 1;
+        camera.aspect = (float)width / (float)height;
+        camera_update_projection(&camera);
         glViewport(0, 0, width, height);
+        return 0;
       }
     break;
+    case WM_LBUTTONDOWN:
+        g_mouseLook = true;
+        SetCapture(hwnd);
+        g_lastPos.x = GET_X_LPARAM(lParam);
+        g_lastPos.y = GET_Y_LPARAM(lParam);
+    return 0;
+    case WM_LBUTTONUP:
+        g_mouseLook = false;
+        ReleaseCapture();
+    return 0;
+    case WM_MOUSEMOVE:
+        if (g_mouseLook) 
+        {
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
+
+            float xoffset = (float)(x - g_lastPos.x);
+            float yoffset = (float)(g_lastPos.y - y); // invert y
+
+            g_lastPos.x = x;
+            g_lastPos.y = y;
+  
+            camera_process_mouse(&camera, xoffset, yoffset);
+        }
+    return 0;
+
     default:
       return DefWindowProc(hwnd, msg, wParam, lParam);
   }
