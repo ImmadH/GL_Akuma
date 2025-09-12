@@ -76,20 +76,29 @@ void checkErrors(uint32_t shader, const char* type)
 
 char* read_file(const char* filepath)
 {
-    FILE* file = fopen(filepath, "r");
-    if (!file) return NULL;
+    FILE* f = fopen(filepath, "rb");            // BINARY mode
+    if (!f) return NULL;
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz < 0) { fclose(f); return NULL; }
 
-    fseek(file, 0, SEEK_END);
-    long length = ftell(file);
-    rewind(file);
+    char* buf = (char*)malloc((size_t)sz + 1);
+    if (!buf) { fclose(f); return NULL; }
 
-    char* buffer = malloc(length + 1); // +1 for null terminator
-    if (!buffer) return NULL;
+    size_t n = fread(buf, 1, (size_t)sz, f);
+    fclose(f);
+    buf[n] = '\0';
 
-    fread(buffer, 1, length, file);
-    buffer[length] = '\0'; 
-
-    fclose(file);
-    return buffer;
+    // Strip UTF-8 BOM if present to avoid GLSL choking before #version
+    if (n >= 3 &&
+        (unsigned char)buf[0] == 0xEF &&
+        (unsigned char)buf[1] == 0xBB &&
+        (unsigned char)buf[2] == 0xBF) {
+        memmove(buf, buf + 3, n - 3);
+        n -= 3;
+        buf[n] = '\0';
+    }
+    return buf;
 }
 
