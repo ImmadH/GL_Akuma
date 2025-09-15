@@ -5,6 +5,7 @@
 #include "camera.h"
 #include <winuser.h>
 #include "model.h"
+#include "skybox.h"
 
 void process_input(Camera* camera);
 Camera camera;
@@ -47,16 +48,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   camera_set_perspective(&camera, 70.0f, (float)width / (float)height, 0.1f, 100.0f);
   glViewport(0, 0, width, height);
 
-  //triangle test
+  Skybox skybox = skybox_create();
+
+
   //shader setup
   Shader mainShader;
-  shader_create(&mainShader, "shaders/vert.glsl", "shaders/frag.glsl");
+  Shader skyboxShader;
+  shader_create(&mainShader, "shaders/shader.vert", "shaders/shader.frag");
+  shader_create(&skyboxShader, "shaders/skybox.vert", "shaders/skybox.frag");
+  
+  glUseProgram(skyboxShader.ID);
+  uint32_t skyboxUniform = glGetUniformLocation(skyboxShader.ID, "skybox");
+  glUniform1i(skyboxUniform, 0);
 
 
   glUseProgram(mainShader.ID);
   glUniform1i(glGetUniformLocation(mainShader.ID, "uTex0"), 0);
-
-
   Model* coolModel = model_load("assets/miguel/scene.gltf");
   if(!coolModel)
   {
@@ -97,12 +104,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     glUniformMatrix4fv(locModel, 1, GL_FALSE, (float*)modelMtx);
 
     model_draw(coolModel, mainShader.ID);
+      
+
+    //SKYBOX 
+    glUseProgram(skyboxShader.ID);
+    mat4 viewNoTrans;
+    glm_mat4_copy(viewMtx, viewNoTrans);
+    viewNoTrans[3][0] = 0.0f;
+    viewNoTrans[3][1] = 0.0f;
+    viewNoTrans[3][2] = 0.0f;
+
+    uint32_t skyboxView = glGetUniformLocation(skyboxShader.ID, "view");
+    glUniformMatrix4fv(skyboxView, 1, GL_FALSE, (float*)viewNoTrans);
+
+    uint32_t skyboxProj = glGetUniformLocation(skyboxShader.ID, "projection");
+    glUniformMatrix4fv(skyboxProj, 1, GL_FALSE, (float*)camera.projection);
+    glActiveTexture(GL_TEXTURE0);
+    skybox_draw(&skybox);
+
 
     SwapBuffers(window->hDC);
   }
 
   model_destroy(coolModel);
   shader_delete(&mainShader);
+  shader_delete(&skyboxShader);
+  skybox_destroy(&skybox);
   return  msg.wParam;
 
 }
