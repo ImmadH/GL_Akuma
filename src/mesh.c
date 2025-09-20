@@ -165,7 +165,7 @@ Material material_create(const cgltf_material* in, const Texture* textures, uint
                 }
             }
             if (!found) {
-                printf("  ✗ Diffuse texture NOT FOUND: %s (filename: %s)\n", img->uri, uri_filename);
+                printf("   Diffuse texture NOT FOUND: %s (filename: %s)\n", img->uri, uri_filename);
                 material.diffuseTex = 0; // Fallback to first texture
             }
         }

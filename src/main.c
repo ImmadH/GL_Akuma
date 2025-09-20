@@ -47,7 +47,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   
   //GUI 
   gui_init(window->handle, "#version 460");
-
+  bool wireFrame = false;
+  bool enableMSAA = true;
 
 
   //Camera 
@@ -60,7 +61,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   Skybox skybox = skybox_create();
 
 
-  //shader setup
+  //shader setup TODO make this return a shader object so we can clean this up 
   Shader mainShader;
   Shader skyboxShader;
   shader_create(&mainShader, "shaders/shader.vert", "shaders/shader.frag");
@@ -96,6 +97,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //draw here test
     glClearColor(0.0, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //options check before any drawing 
+    if(wireFrame)
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    else
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    if (enableMSAA) 
+      glEnable(GL_MULTISAMPLE);
+    else 
+      glDisable(GL_MULTISAMPLE);
+    
     shader_use(&mainShader);
     mat4 viewMtx;
     mat4 modelMtx;
@@ -104,14 +117,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     glm_rotate_x(modelMtx, glm_rad(90.0f), modelMtx);
     camera_get_view_matrix(&camera, viewMtx);
     
-    GLint loc = glGetUniformLocation(mainShader.ID, "uProjection");
-    glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)camera.projection);
-
-    loc = glGetUniformLocation(mainShader.ID, "uView");
-    glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)viewMtx);
-
-    uint32_t locModel = glGetUniformLocation(mainShader.ID, "model");
-    glUniformMatrix4fv(locModel, 1, GL_FALSE, (float*)modelMtx);
+    shader_set_mat4(&mainShader, "uProjection", (float*)camera.projection);
+    shader_set_mat4(&mainShader, "uView", (float*)viewMtx);
+    shader_set_mat4(&mainShader, "model", (float*)modelMtx);
 
     model_draw(coolModel, mainShader.ID);
       
@@ -124,18 +132,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     viewNoTrans[3][1] = 0.0f;
     viewNoTrans[3][2] = 0.0f;
 
-    uint32_t skyboxView = glGetUniformLocation(skyboxShader.ID, "view");
-    glUniformMatrix4fv(skyboxView, 1, GL_FALSE, (float*)viewNoTrans);
-
-    uint32_t skyboxProj = glGetUniformLocation(skyboxShader.ID, "projection");
-    glUniformMatrix4fv(skyboxProj, 1, GL_FALSE, (float*)camera.projection);
+    shader_set_mat4(&skyboxShader, "view", (float*)viewNoTrans);
+    shader_set_mat4(&skyboxShader, "projection", (float*)camera.projection);
     glActiveTexture(GL_TEXTURE0);
     skybox_draw(&skybox);
     
 
     gui_new_frame();
-    igBegin("Hello", NULL, 0);
-    igText("It works!"); 
+    igBegin("Akuma - OpenGL 4.6 Renderer", NULL, 0);
+    igCheckbox("Wireframe", &wireFrame);
+    igCheckbox("MSAA 8X", &enableMSAA);
     igEnd();
     gui_render();
 

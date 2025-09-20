@@ -76,7 +76,7 @@ void checkErrors(uint32_t shader, const char* type)
 
 char* read_file(const char* filepath)
 {
-    FILE* f = fopen(filepath, "rb");            // BINARY mode
+    FILE* f = fopen(filepath, "rb");            
     if (!f) return NULL;
     fseek(f, 0, SEEK_END);
     long sz = ftell(f);
@@ -90,7 +90,6 @@ char* read_file(const char* filepath)
     fclose(f);
     buf[n] = '\0';
 
-    // Strip UTF-8 BOM if present to avoid GLSL choking before #version
     if (n >= 3 &&
         (unsigned char)buf[0] == 0xEF &&
         (unsigned char)buf[1] == 0xBB &&
@@ -101,4 +100,34 @@ char* read_file(const char* filepath)
     }
     return buf;
 }
+
+
+uint32_t uniform_loc(Shader* shader, const char* name) {
+    return glGetUniformLocation(shader->ID, name);
+}
+
+void shader_set_bool(Shader* shader, const char* name, int value) {
+    glUniform1i(uniform_loc(shader, name), value);
+}
+
+void shader_set_int(Shader* shader, const char* name, int value) {
+    glUniform1i(uniform_loc(shader, name), value);
+}
+
+void shader_set_float(Shader* shader, const char* name, float value) {
+    glUniform1f(uniform_loc(shader, name), value);
+}
+
+void shader_set_vec3(Shader* shader, const char* name, float x, float y, float z) {
+    glUniform3f(uniform_loc(shader, name), x, y, z);
+}
+
+void shader_set_vec4(Shader* shader, const char* name, float x, float y, float z, float w) {
+    glUniform4f(uniform_loc(shader, name), x, y, z, w);
+}
+
+void shader_set_mat4(Shader* shader, const char* name, const float* mat) {
+    glUniformMatrix4fv(uniform_loc(shader, name), 1, GL_FALSE, mat);
+}
+
 

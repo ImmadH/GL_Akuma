@@ -12,18 +12,15 @@ extern "C++" LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 #endif
 
 extern "C" {
-#include "gui.h"   // if this is a C header you provide to the rest of the app
+#include "gui.h"   
 }
-
-
-
 
 void gui_init(HWND hwnd, const char* glsl_version)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    ImGuiIO& io = ImGui::GetIO();  // replaces (void)igGetIO();
+    ImGuiIO& io = ImGui::GetIO();  
     (void)io;
 
     ImGui_ImplWin32_Init(hwnd);
