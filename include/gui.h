@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-void gui_init(HWND hwnd, const char* glsl_version);   // e.g. "#version 460"
+void gui_init(HWND hwnd, const char* glsl_version);   
 void gui_shutdown(void);
 void gui_new_frame(void);
 void gui_render(void);
