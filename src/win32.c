@@ -4,6 +4,7 @@
 #include <winuser.h>
 #include "camera.h"
 #include <windowsx.h>
+#include "gui.h"
 
 extern Camera camera;
 static bool g_mouseLook = false;
@@ -17,6 +18,9 @@ const wchar_t* getClassName(void)
 //function to manage the window procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  if (gui_wndproc_handler(hwnd, msg, wParam, lParam))
+        return 1;
+
   switch(msg)
   {
     case WM_CLOSE:
@@ -50,6 +54,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         ReleaseCapture();
     return 0;
     case WM_MOUSEMOVE:
+        if (gui_want_capture_input())
+            return 0;  
         if (g_mouseLook) 
         {
             int x = GET_X_LPARAM(lParam);
@@ -123,6 +129,3 @@ Window* create_window(void)
 
 //we need a main entry point that will grab from the populated struct MyStruct 
 //function to create the actual window
-
-
-

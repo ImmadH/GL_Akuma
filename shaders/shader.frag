@@ -8,6 +8,13 @@ uniform vec4 uTint;         // set by mesh_draw(), defaults to 1
 
 void main()
 {
-    vec4 base = (uHasDiffuse != 0) ? texture(uTex0, vUV) : vec4(1.0);
-    FragColor = base * uTint;
+    if (uHasDiffuse != 0) {
+        vec4 base = texture(uTex0, vUV);
+
+        if (base.a < 0.5) discard;   // tweak threshold if needed (0.3–0.6)
+
+        FragColor = base * uTint;
+    } else {
+        FragColor = uTint;
+    }
 }

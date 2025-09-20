@@ -6,10 +6,12 @@
 #include <winuser.h>
 #include "model.h"
 #include "skybox.h"
+#include "gui.h"
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include "cimgui.h"
 
 void process_input(Camera* camera);
 Camera camera;
-
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -39,6 +41,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
   //GLSETUP
   glEnable(GL_DEPTH_TEST);
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+  
+  //GUI 
+  gui_init(window->handle, "#version 460");
+
 
 
   //Camera 
@@ -83,6 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
+    
     //draw here test
     glClearColor(0.0, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -121,6 +131,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     glUniformMatrix4fv(skyboxProj, 1, GL_FALSE, (float*)camera.projection);
     glActiveTexture(GL_TEXTURE0);
     skybox_draw(&skybox);
+    
+
+    gui_new_frame();
+    igBegin("Hello", NULL, 0);
+    igText("It works!"); 
+    igEnd();
+    gui_render();
+
 
 
     SwapBuffers(window->hDC);
@@ -130,6 +148,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   shader_delete(&mainShader);
   shader_delete(&skyboxShader);
   skybox_destroy(&skybox);
+  gui_shutdown();
   return  msg.wParam;
 
 }
@@ -159,3 +178,5 @@ void process_input(Camera* camera)
     if (GetAsyncKeyState('A') & 0x8000) camera_process_keyboard(camera, LEFT,     deltaTime);
     if (GetAsyncKeyState('D') & 0x8000) camera_process_keyboard(camera, RIGHT,    deltaTime);
 }
+
+
