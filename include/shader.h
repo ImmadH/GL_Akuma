@@ -22,3 +22,13 @@ uint32_t compile_shader(uint32_t shaderType, const char* shaderSource);
 void checkErrors(uint32_t shader, const char* type);
 char* read_file(const char* filepath);
 
+//utility
+uint32_t uniform_loc(Shader* shader, const char* name);
+
+void shader_set_bool(Shader* shader, const char* name, int value); 
+void shader_set_int(Shader* shader, const char* name, int value); 
+void shader_set_float(Shader* shader, const char* name, float value); 
+void shader_set_vec3(Shader* shader, const char* name, float x, float y, float z);
+void shader_set_vec4(Shader* shader, const char* name, float x, float y, float z, float w);
+void shader_set_mat4(Shader* shader, const char* name, const float* mat);
+
