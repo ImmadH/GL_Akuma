@@ -6,6 +6,7 @@
 #include <cgltf.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "shader.h"
 
 Model* model_load(const char* filePath)
 {
@@ -162,11 +163,12 @@ void model_draw(const Model* model, uint32_t program)
 
     glUseProgram(program);
 
-    // cache uniform locations
+    //cache uniform locations
     const GLint locSam  = glGetUniformLocation(program, "uTex0");
     const GLint locHas  = glGetUniformLocation(program, "uHasDiffuse");
     const GLint locTint = glGetUniformLocation(program, "uTint");
     if (locSam >= 0) glUniform1i(locSam, 0);  // texture unit 0
+    
 
     glActiveTexture(GL_TEXTURE0);
 
@@ -199,6 +201,7 @@ void model_draw(const Model* model, uint32_t program)
 
         if (locHas >= 0) glUniform1i(locHas, has ? 1 : 0);
         glBindTexture(GL_TEXTURE_2D, has ? model->textures[idx].ID : 0);
+
 
         glBindVertexArray(mesh->VAO);
         glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);

@@ -158,7 +158,7 @@ Material material_create(const cgltf_material* in, const Texture* textures, uint
                     
                     if (strcmp(stored_filename, uri_filename) == 0) {
                         material.diffuseTex = i;  // Store the INDEX, not the OpenGL ID
-                        printf("  ✓ Found diffuse texture at index %u (ID: %u)\n", i, textures[i].ID);
+                        printf("  Found diffuse texture at index %u (ID: %u)\n", i, textures[i].ID);
                         found = true;
                         break;
                     }

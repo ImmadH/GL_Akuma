@@ -59,10 +59,12 @@ uint32_t load_cubemap(const char* faces[6])
 void skybox_draw(Skybox* skybox)
 {
 	glDepthFunc(GL_LEQUAL);
+  glDisable(GL_CULL_FACE);
 	glBindVertexArray(skybox->skyboxVAO);
   glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->cubemapTexture);
   glDrawArrays(GL_TRIANGLES, 0, 36);
   glBindVertexArray(0);
+  glEnable(GL_CULL_FACE);
   glDepthFunc(GL_LESS); 
 }
 

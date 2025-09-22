@@ -1,14 +1,16 @@
 #include "cglm/affine.h"
+#include "cglm/cglm.h"
+#include "cglm/vec3.h"
 #include "win32.h"
 #include "glad/glad.h"
 #include "shader.h"
 #include "camera.h"
 #include <winuser.h>
-#include "model.h"
 #include "skybox.h"
 #include "gui.h"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
+#include "scene.h"
 
 void process_input(Camera* camera);
 Camera camera;
@@ -49,6 +51,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   gui_init(window->handle, "#version 460");
   bool wireFrame = false;
   bool enableMSAA = true;
+  bool unlit= false;
+  bool toggleNight = false;
+  bool toggleSkybox = true;
 
 
   //Camera 
@@ -65,6 +70,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   Shader mainShader;
   Shader skyboxShader;
   shader_create(&mainShader, "shaders/shader.vert", "shaders/shader.frag");
+  vec3 lightDir = { 1.0f, -0.1f, -0.48f };
+  glm_normalize(lightDir);
   shader_create(&skyboxShader, "shaders/skybox.vert", "shaders/skybox.frag");
   
   glUseProgram(skyboxShader.ID);
@@ -72,13 +79,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   glUniform1i(skyboxUniform, 0);
 
 
-  glUseProgram(mainShader.ID);
-  glUniform1i(glGetUniformLocation(mainShader.ID, "uTex0"), 0);
-  Model* coolModel = model_load("assets/miguel/scene.gltf");
-  if(!coolModel)
-  {
-    printf("FAILED TO LOAD");
-  }
+  Scene scene;
+  scene_init(&scene);
+
+  static char* gModels[] = {
+    "assets/miguel/scene.gltf",
+    "assets/model/scene.gltf",
+  };
+  static int gSel = 0;
 
 
   //Game loop
@@ -109,39 +117,64 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     else 
       glDisable(GL_MULTISAMPLE);
     
+
+    scene_update(&scene);
     shader_use(&mainShader);
     mat4 viewMtx;
-    mat4 modelMtx;
-    glm_mat4_identity(modelMtx);
-    //glm_scale(modelMtx, (vec3){ 0.01f, 0.01f, 0.01f });
-    glm_rotate_x(modelMtx, glm_rad(90.0f), modelMtx);
     camera_get_view_matrix(&camera, viewMtx);
     
     shader_set_mat4(&mainShader, "uProjection", (float*)camera.projection);
     shader_set_mat4(&mainShader, "uView", (float*)viewMtx);
-    shader_set_mat4(&mainShader, "model", (float*)modelMtx);
-
-    model_draw(coolModel, mainShader.ID);
-      
-
-    //SKYBOX 
-    glUseProgram(skyboxShader.ID);
-    mat4 viewNoTrans;
-    glm_mat4_copy(viewMtx, viewNoTrans);
-    viewNoTrans[3][0] = 0.0f;
-    viewNoTrans[3][1] = 0.0f;
-    viewNoTrans[3][2] = 0.0f;
-
-    shader_set_mat4(&skyboxShader, "view", (float*)viewNoTrans);
-    shader_set_mat4(&skyboxShader, "projection", (float*)camera.projection);
-    glActiveTexture(GL_TEXTURE0);
-    skybox_draw(&skybox);
     
+    shader_set_vec3(&mainShader, "uViewPos", camera.position[0],camera.position[1],camera.position[2]);
+    shader_set_vec3(&mainShader, "uLightColor", 1.0f, 1.0f, 1.0f);
+
+    if(unlit)
+      shader_set_float(&mainShader, "uShininess", 0.0f);
+    else if(!unlit && toggleNight)
+      shader_set_float(&mainShader, "uShininess", -1.0f);
+    else
+     shader_set_float(&mainShader, "uShininess", 16.0f);
+
+    if (toggleNight) shader_set_vec3(&mainShader, "uLightColor", 0.0f, 0.0f, 0.0f);
+    else             shader_set_vec3(&mainShader, "uLightColor", 1.0f, 1.0f, 1.0f);
+
+    vec3 dir;
+    glm_vec3_copy(lightDir, dir);
+    glm_normalize(dir);
+    shader_set_vec3(&mainShader, "uLightDir", dir[0], dir[1], dir[2]);
+
+    //SCENE DRAWING 
+    scene_draw(&scene, mainShader.ID);
+
+    //Skybox
+    if(toggleSkybox)
+    {
+      glUseProgram(skyboxShader.ID);
+      mat4 viewNoTrans;
+      glm_mat4_copy(viewMtx, viewNoTrans);
+      viewNoTrans[3][0] = 0.0f;
+      viewNoTrans[3][1] = 0.0f;
+      viewNoTrans[3][2] = 0.0f;
+
+      shader_set_mat4(&skyboxShader, "view", (float*)viewNoTrans);
+      shader_set_mat4(&skyboxShader, "projection", (float*)camera.projection);
+      glActiveTexture(GL_TEXTURE0);
+      skybox_draw(&skybox);
+    }
 
     gui_new_frame();
     igBegin("Akuma - OpenGL 4.6 Renderer", NULL, 0);
+    scene_ui(&scene, gModels, (int)(sizeof gModels / sizeof gModels[0]), &gSel);
+    igSeparator();
+    igText("Settings");
     igCheckbox("Wireframe", &wireFrame);
     igCheckbox("MSAA 8X", &enableMSAA);
+    igSliderFloat3("Light Direction", lightDir, -1.0f, 1.0f, "%.2f", 0);
+    igCheckbox("Toggle Unlit", &unlit);
+    igCheckbox("Toggle Night", &toggleNight);
+    igCheckbox("Toggle Skybox", &toggleSkybox);
+
     igEnd();
     gui_render();
 
@@ -150,7 +183,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SwapBuffers(window->hDC);
   }
 
-  model_destroy(coolModel);
+  
   shader_delete(&mainShader);
   shader_delete(&skyboxShader);
   skybox_destroy(&skybox);
