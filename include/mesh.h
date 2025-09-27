@@ -15,17 +15,17 @@ typedef struct Texture
   char* path; 
 } Texture;
 
-typedef struct Material 
-{
-  vec3 ambient;
-  vec3 diffuse;
-  vec3 specular;
-  float shininess;
-  uint32_t diffuseTex;
-  uint32_t normalTex;
+typedef struct Material {
+    float diffuse[3];
+    float ambient[3];
+    float specular[3];
+    float shininess;
+    uint32_t diffuseTex;   // UINT32_MAX if none
+    uint32_t normalTex;    // UINT32_MAX if none
 
+    float    uvScale[2];   
+    float    uvOffset[2]; 
 } Material;
-
 
 typedef struct Mesh 
 {
@@ -37,8 +37,9 @@ typedef struct Mesh
 
 Mesh mesh_create(const cgltf_primitive* prim, uint32_t materialIndex);
 Texture texture_create(const char* uri);
-Material material_create(const cgltf_material* in, const Texture* textures, uint32_t textureCount);
-
+Material material_create(const cgltf_material* in,
+                         const Texture* textures, uint32_t textureCount,
+                         const cgltf_image* images_base);
 void* get_buffer_data(const cgltf_accessor* accessor);
 
 

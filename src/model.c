@@ -1,12 +1,12 @@
 #include "model.h"
 #include <stdint.h>
-// model.c
 #include "model.h"
 #include "mesh.h"
 #include <cgltf.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "shader.h"
+
+
 
 Model* model_load(const char* filePath)
 {
@@ -52,16 +52,16 @@ Model* model_load(const char* filePath)
     // Extract directory from filePath for relative texture paths
     char* basePath = strdup(filePath);
     char* lastSlash = strrchr(basePath, '/');
-    if (!lastSlash) lastSlash = strrchr(basePath, '\\');  // Windows support
+    if (!lastSlash) lastSlash = strrchr(basePath, '\\');  
     if (lastSlash) {
-        *(lastSlash + 1) = '\0';  // Keep the slash, null-terminate after it
-    } else {
-        strcpy(basePath, "./");   // Current directory if no path separators
+        *(lastSlash + 1) = '\0';      } 
+    else {
+        strcpy(basePath, "./");   
     }
     
     for (uint32_t i = 0; i < model->textureCount; ++i) {
         if (data->images[i].uri) {
-            // Build full path: basePath + uri
+            // Build full path
             size_t fullPathLen = strlen(basePath) + strlen(data->images[i].uri) + 1;
             char* fullPath = malloc(fullPathLen);
             strcpy(fullPath, basePath);
@@ -72,9 +72,9 @@ Model* model_load(const char* filePath)
             
             if (model->textures[i].ID == 0) {
                 printf("Warning: Failed to load texture: %s\n", fullPath);
-                // Create a default white texture to avoid crashes
+                
                 model->textures[i] = (Texture){0};
-                model->textures[i].path = strdup(data->images[i].uri);  // Keep original URI
+                model->textures[i].path = strdup(data->images[i].uri); 
             }
             
             free(fullPath);
@@ -95,11 +95,12 @@ Model* model_load(const char* filePath)
         model->materials[i] =
             material_create(&data->materials[i],
                             model->textures,
-                            model->textureCount);
+                            model->textureCount,
+                            data->images); 
     }
     printf("STAGE5\n");
 
-    // 7) build meshes - FIXED LOGIC
+    // 7) build meshes 
     uint32_t meshIdx = 0;
     for (size_t ni = 0; ni < data->nodes_count; ++ni) {
         cgltf_node *node = &data->nodes[ni];
@@ -108,8 +109,8 @@ Model* model_load(const char* filePath)
         for (uint32_t pi = 0; pi < node->mesh->primitives_count; ++pi) {
             cgltf_primitive *prim = &node->mesh->primitives[pi];
             
-            // compute material index - FIXED: initialize to 0
-            uint32_t matIdx = 0;  // Default material
+            // compute material index 
+            uint32_t matIdx = 0; 
             if (prim->material) {
                 matIdx = (uint32_t)(prim->material - data->materials);
                 if (matIdx >= model->materialCount) {
@@ -118,7 +119,7 @@ Model* model_load(const char* filePath)
                 }
             }
             
-            // FIXED: Always create mesh, not just in else block
+            
             model->meshes[meshIdx++] = mesh_create(prim, matIdx);
         }
     }
@@ -155,57 +156,70 @@ void model_destroy(Model* model)
 }
 
 
-
-
 void model_draw(const Model* model, uint32_t program)
 {
     if (!model || model->meshCount == 0 || !model->meshes || !model->materials) return;
 
     glUseProgram(program);
 
-    //cache uniform locations
-    const GLint locSam  = glGetUniformLocation(program, "uTex0");
-    const GLint locHas  = glGetUniformLocation(program, "uHasDiffuse");
-    const GLint locTint = glGetUniformLocation(program, "uTint");
-    if (locSam >= 0) glUniform1i(locSam, 0);  // texture unit 0
-    
+    const GLint locSam     = glGetUniformLocation(program, "uTex0");
+    const GLint locHas     = glGetUniformLocation(program, "uHasDiffuse");
+    const GLint locTint    = glGetUniformLocation(program, "uTint");
+    // NEW:
+    const GLint locUVScale = glGetUniformLocation(program, "uUVScale");
+    const GLint locUVOff   = glGetUniformLocation(program, "uUVOffset");
 
+    if (locSam >= 0) glUniform1i(locSam, 0);
     glActiveTexture(GL_TEXTURE0);
 
     for (uint32_t i = 0; i < model->meshCount; ++i) {
         const Mesh*     mesh = &model->meshes[i];
         const Material* mat  = &model->materials[mesh->materialIndex];
 
-        // set tint from material diffuse (fallback to white)
+        // Tint
         if (locTint >= 0) {
             float tint[4] = {1.f, 1.f, 1.f, 1.f};
             if (mat) {
                 tint[0] = mat->diffuse[0];
                 tint[1] = mat->diffuse[1];
                 tint[2] = mat->diffuse[2];
+                if (tint[0] < 1e-4f && tint[1] < 1e-4f && tint[2] < 1e-4f)
+                    tint[0] = tint[1] = tint[2] = 1.0f;
             }
             glUniform4fv(locTint, 1, tint);
         }
 
-        // safe texture presence + bind
+                if (locUVScale >= 0) {
+            const float defScale[2] = {1.f,1.f};
+            glUniform2fv(locUVScale, 1, mat ? mat->uvScale : defScale);
+        }
+        if (locUVOff >= 0) {
+            const float defOff[2] = {0.f,0.f};
+            glUniform2fv(locUVOff, 1, mat ? mat->uvOffset : defOff);
+        }
+
+        // Bind diffuse
         bool has = false;
         uint32_t idx = 0;
-        if (model->textureCount > 0 &&
-            mat &&
+        if (model->textureCount > 0 && mat &&
             mat->diffuseTex != UINT32_MAX &&
             mat->diffuseTex < model->textureCount)
         {
             idx = mat->diffuseTex;
             has = (model->textures[idx].ID != 0);
         }
-
         if (locHas >= 0) glUniform1i(locHas, has ? 1 : 0);
         glBindTexture(GL_TEXTURE_2D, has ? model->textures[idx].ID : 0);
-
 
         glBindVertexArray(mesh->VAO);
         glDrawElements(GL_TRIANGLES, mesh->indexCount, GL_UNSIGNED_INT, 0);
     }
-
     glBindVertexArray(0);
+}
+
+
+void model_draw_depth(const Model* model, uint32_t program)
+{
+    if (!model) return;
+    model_draw(model, program);
 }

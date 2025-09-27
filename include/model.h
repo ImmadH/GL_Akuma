@@ -20,4 +20,5 @@ typedef struct Model
 Model* model_load(const char* filePath);
 void model_destroy(Model* model);
 void model_draw(const Model* model, uint32_t shaderProgram);
+void model_draw_depth(const Model* model, uint32_t program);
 #endif

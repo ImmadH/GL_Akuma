@@ -15,6 +15,7 @@ const wchar_t* getClassName(void)
   return L"WindowClass";
 }
 
+
 //function to manage the window procedure
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -39,6 +40,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         if (height == 0) height = 1;
         camera.aspect = (float)width / (float)height;
         camera_update_projection(&camera);
+        //resize(width, height);
         glViewport(0, 0, width, height);
         return 0;
       }

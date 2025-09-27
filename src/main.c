@@ -11,8 +11,10 @@
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "cimgui.h"
 #include "scene.h"
+#include "shadow.h"
 
 void process_input(Camera* camera);
+static ShadowSystem gShadows;
 Camera camera;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -43,7 +45,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
   //GLSETUP
   glEnable(GL_DEPTH_TEST);
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   
@@ -78,6 +79,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   uint32_t skyboxUniform = glGetUniformLocation(skyboxShader.ID, "skybox");
   glUniform1i(skyboxUniform, 0);
 
+  //SHADOW MAPS
+  shadow_init(&gShadows, 4096, 4096,
+            "shaders/shadow.vert",
+            "shaders/shadow.frag");
 
   Scene scene;
   scene_init(&scene);
@@ -85,6 +90,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   static char* gModels[] = {
     "assets/miguel/scene.gltf",
     "assets/model/scene.gltf",
+    "assets/hoonam/scene.gltf",
+    "assets/bistro/scene.gltf",
+    "assets/sponza/sponza.gltf",
+    "assets/bunny/bunny.gltf",
+    "assets/new/scene.gltf"
   };
   static int gSel = 0;
 
@@ -93,6 +103,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   bool running = true;
   while (running)
   { 
+    GetClientRect(window->handle, &rect);
+    int widthDynamic  = rect.right - rect.left;
+    int heightDynamic = rect.bottom - rect.top;
     process_input(&camera);
     while(PeekMessage(&msg, NULL, 0, 0,PM_REMOVE))
     {
@@ -119,9 +132,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     
 
     scene_update(&scene);
+    {
+      vec3 dir;
+      glm_vec3_copy(lightDir, dir);
+      glm_normalize(dir);
+
+      vec3 focus = { camera.position[0], camera.position[1], camera.position[2] };
+      shadow_update_dir(&gShadows, dir, focus, 50.f, 0.1f, 150.f);
+      shadow_begin(&gShadows);
+      for (unsigned i = 0; i < scene.count; ++i) {
+          const SceneInstance* inst = &scene.items[i];
+          if (!inst->mainModel) continue;
+          shadow_submit_model(&gShadows, inst->mainModel, inst->model);
+      }
+      shadow_end(&gShadows, widthDynamic, heightDynamic);
+    }
     shader_use(&mainShader);
+
     mat4 viewMtx;
     camera_get_view_matrix(&camera, viewMtx);
+    
+
+    shader_use(&mainShader);// back to window
     
     shader_set_mat4(&mainShader, "uProjection", (float*)camera.projection);
     shader_set_mat4(&mainShader, "uView", (float*)viewMtx);
@@ -129,12 +161,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     shader_set_vec3(&mainShader, "uViewPos", camera.position[0],camera.position[1],camera.position[2]);
     shader_set_vec3(&mainShader, "uLightColor", 1.0f, 1.0f, 1.0f);
 
-    if(unlit)
-      shader_set_float(&mainShader, "uShininess", 0.0f);
-    else if(!unlit && toggleNight)
-      shader_set_float(&mainShader, "uShininess", -1.0f);
-    else
-     shader_set_float(&mainShader, "uShininess", 16.0f);
 
     if (toggleNight) shader_set_vec3(&mainShader, "uLightColor", 0.0f, 0.0f, 0.0f);
     else             shader_set_vec3(&mainShader, "uLightColor", 1.0f, 1.0f, 1.0f);
@@ -143,6 +169,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     glm_vec3_copy(lightDir, dir);
     glm_normalize(dir);
     shader_set_vec3(&mainShader, "uLightDir", dir[0], dir[1], dir[2]);
+    
+    shader_set_int(&mainShader, "uShadowMap", shadow_bind_depth(&gShadows, 1));
+    shader_set_mat4(&mainShader, "uLightVP",  shadow_light_vp(&gShadows));
+
+
+    if(unlit)
+      shader_set_float(&mainShader, "uShininess", 0.0f);
+    else if(toggleNight)
+      shader_set_float(&mainShader, "uShininess", -1.0f);
+    else
+     shader_set_float(&mainShader, "uShininess", 16.0f);
+
 
     //SCENE DRAWING 
     scene_draw(&scene, mainShader.ID);
@@ -183,7 +221,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SwapBuffers(window->hDC);
   }
 
-  
   shader_delete(&mainShader);
   shader_delete(&skyboxShader);
   skybox_destroy(&skybox);
