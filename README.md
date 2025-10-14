@@ -17,6 +17,7 @@
 - Scene/Asset Manager (Scale, Translation, Rotation, Color)
 - GUI Subsytem (via IMGUI)
 - Cubemap Skybox
+- MSAA 8x
 
 ## Dependencies
 
