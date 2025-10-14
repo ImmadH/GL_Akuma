@@ -4,7 +4,8 @@
 #include "glad/glad.h"
 #include <limits.h>
 
-void scene_init(Scene* s) {
+void scene_init(Scene* s) 
+{
     memset(s, 0, sizeof(*s));
     for (unsigned i = 0; i < MAX_POINT_LIGHTS; ++i) s->plProxyIdx[i] = -1;
     s->plCubeModel = NULL;

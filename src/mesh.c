@@ -2,7 +2,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-static Texture make_white_texture(void) {
+//Fall back since we are not doing PBR
+static Texture make_white_texture(void) 
+{
     Texture t = (Texture){0};
     glGenTextures(1, &t.ID);
     glBindTexture(GL_TEXTURE_2D, t.ID);
@@ -33,10 +35,9 @@ Texture texture_create(const char* uri)
     Texture texture = (Texture){0};
 
     int w = 0, h = 0, n = 0;
-    // Force 4 channels (RGBA) on load to avoid format mismatches.
     unsigned char* data = stbi_load(uri, &w, &h, &n, 4);
     if (!data || w <= 0 || h <= 0) {
-        fprintf(stderr, "ERROR: stbi_load failed for '%s' (%s)\n",
+        fprintf(stderr, "stbi_load failed for '%s' (%s)\n",
                 uri ? uri : "(null)", stbi_failure_reason());
         return make_white_texture();
     }
@@ -44,23 +45,20 @@ Texture texture_create(const char* uri)
     glGenTextures(1, &texture.ID);
     glBindTexture(GL_TEXTURE_2D, texture.ID);
 
-    // Robust defaults
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    // Tight packing: avoids crashes/misreads on 3/4-byte rows
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    // Upload as RGBA 8-bit no matter the source.
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
         fprintf(stderr, "GL ERROR after glTexImage2D for '%s': 0x%04X\n",
                 uri ? uri : "(null)", (unsigned)err);
-        // keep going, but ensure we return a valid texture if upload failed
+        //ensure we return a valid texture if upload failed
         glDeleteTextures(1, &texture.ID);
         stbi_image_free(data);
         return make_white_texture();
@@ -195,7 +193,6 @@ Mesh mesh_create(const cgltf_primitive* prim, uint32_t materialIndex)
     else if (texcoords0)                          texCoords = texcoords0;
     else if (texcoords1)                          texCoords = texcoords1;
 
-    // vertex count & layout (pos=3, +normal?3, +uv?2)
     const size_t vertexCount = position->count;
     int comps = 3;                 // pos
     if (normals)   comps += 3;     // normal

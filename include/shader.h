@@ -20,7 +20,7 @@ void shader_use(const Shader* shader);
 //utility
 uint32_t compile_shader(uint32_t shaderType, const char* shaderSource);
 void checkErrors(uint32_t shader, const char* type);
-char* read_file(const char* filepath);
+char* read_file(const char* path);
 
 //utility
 uint32_t uniform_loc(Shader* shader, const char* name);

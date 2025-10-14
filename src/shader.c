@@ -74,31 +74,39 @@ void checkErrors(uint32_t shader, const char* type)
   }
 }
 
-char* read_file(const char* filepath)
+char* read_file(const char* path)
 {
-    FILE* f = fopen(filepath, "rb");            
-    if (!f) return NULL;
-    fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    if (sz < 0) { fclose(f); return NULL; }
+    FILE* file = fopen(path, "rb");
 
-    char* buf = (char*)malloc((size_t)sz + 1);
-    if (!buf) { fclose(f); return NULL; }
-
-    size_t n = fread(buf, 1, (size_t)sz, f);
-    fclose(f);
-    buf[n] = '\0';
-
-    if (n >= 3 &&
-        (unsigned char)buf[0] == 0xEF &&
-        (unsigned char)buf[1] == 0xBB &&
-        (unsigned char)buf[2] == 0xBF) {
-        memmove(buf, buf + 3, n - 3);
-        n -= 3;
-        buf[n] = '\0';
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    if (fileSize < 0) {
+        fclose(file);
+        return NULL;
     }
-    return buf;
+
+    char* buffer = (char*)malloc((size_t)fileSize + 1);
+    if (!buffer) {
+        fclose(file);
+        return NULL;
+    }
+
+    size_t bytesRead = fread(buffer, 1, (size_t)fileSize, file);
+    fclose(file);
+    buffer[bytesRead] = '\0';
+
+    if (bytesRead >= 3 &&
+        (unsigned char)buffer[0] == 0xEF &&
+        (unsigned char)buffer[1] == 0xBB &&
+        (unsigned char)buffer[2] == 0xBF)
+    {
+        memmove(buffer, buffer + 3, bytesRead - 3);
+        bytesRead -= 3;
+        buffer[bytesRead] = '\0';
+    }
+
+    return buffer;
 }
 
 
