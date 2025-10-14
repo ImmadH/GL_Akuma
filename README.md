@@ -3,7 +3,7 @@
 - This is an OpenGL 4.6 Rendering Engine that supports GLTF 2.0 Loading & Texturing (non PBR pipeline).
 - The project was mainly written in C11 except for a tiny wrapper for C++ IMGUI Libraries.
 - I created this in pursuit of knowledge for 3D computer graphics and to ease my transfer into the Vulkan API
-- More about the project here: (https://immadh.com/projects/glrenderer/)
+- More about the project and screenshots here: (https://immadh.com/projects/glrenderer/)
 
 ## Features
 - Windowing/context creation from win32 dependencies
