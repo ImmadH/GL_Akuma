@@ -7,7 +7,7 @@
 
 ## Features
 - Windowing/context creation from win32 dependencies
-- Noclip Camera Subsytem
+- Freecam Camera 
 - Shader Loading from file & utility
 - Multi Asset GLTF 2.0 Loading and texturing (via CGLTF)
 - Shadow Mapping
